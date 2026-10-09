@@ -207,6 +207,10 @@
             const ctx = document.getElementById('alertsChart').getContext('2d');
             if (currentChart) currentChart.destroy();
 
+            // Динамічно визначаємо товщину стовпчиків: тонкі для "За весь час", масивні для "Рік" та "Тиждень"
+            const currentBarThickness = (period === 'all') ? 16 : 45;
+            const currentBarPercentage = (period === 'all') ? 0.6 : 0.8;
+
             currentChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -220,8 +224,9 @@
                             hoverBackgroundColor: '#d60030', 
                             borderColor: '#900020',
                             borderWidth: 1,
-                            maxBarThickness: 24, /* Обмеження товщини стовпчика! */
-                            order: 2, 
+                            maxBarThickness: currentBarThickness,
+                            barPercentage: currentBarPercentage,
+                            order: 2,
                             yAxisID: 'y'
                         },
                         {
@@ -229,10 +234,12 @@
                             label: t.chartDuration,
                             data: data.durations,
                             borderColor: '#17a2b8',
-                            backgroundColor: 'transparent',
+                            backgroundColor: '#17a2b8',
                             borderWidth: 4,
                             tension: 0.3,
-                            order: 1, 
+                            pointRadius: 4, 
+                            pointHoverRadius: 6,
+                            order: 1,
                             yAxisID: 'y1'
                         }
                     ]
@@ -248,15 +255,21 @@
                     scales: {
                         x: { 
                             ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
-                            grid: { color: gridColor }
+                            grid: { color: gridColor, display: false } // Прибрав вертикальні лінії для естетики
                         },
                         y: { 
                             type: 'linear', display: true, position: 'left',
-                            ticks: { color: textColor }, grid: { color: gridColor }
+                            beginAtZero: true, // ВАЖЛИВО: фіксує пропорції стовпчиків
+                            grace: '5%',       // Додає відступ зверху, щоб стовпці не впиралися у край
+                            ticks: { color: textColor, stepSize: 1 }, 
+                            grid: { color: gridColor }
                         },
                         y1: { 
                             type: 'linear', display: true, position: 'right',
-                            ticks: { color: textColor }, grid: { drawOnChartArea: false }
+                            beginAtZero: true, // ВАЖЛИВО: фіксує пропорції лінії
+                            grace: '5%',
+                            ticks: { color: textColor }, 
+                            grid: { drawOnChartArea: false }
                         }
                     }
                 }
