@@ -6,9 +6,8 @@
     <title>Статистика повітряних тривог</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Світла тема з теплим (жовтуватим) тлом */
         :root {
-            --bg-color: #fdfbf7; /* Легкий кремово-жовтуватий відтінок */
+            --bg-color: #fdfbf7;
             --text-color: #2c3e50;
             --container-bg: #ffffff;
             --box-bg-1: #fff3cd;
@@ -19,12 +18,11 @@
             --box-border-2: #17a2b8;
             --btn-bg: #e9ecef;
             --btn-text: #495057;
-            --btn-active-bg: #900020; /* Бордовий колір */
+            --btn-active-bg: #900020;
             --btn-active-text: #ffffff;
             --grid-color: rgba(0, 0, 0, 0.1);
         }
 
-        /* Темна тема */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #121212;
@@ -42,10 +40,11 @@
             }
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; }
+        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: 0.3s; }
         .container { max-width: 1000px; margin: 0 auto; background: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; transition: 0.3s; }
         
-        .header-actions { position: absolute; top: 20px; right: 20px; }
+        .header-actions { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 15px; }
+        .last-update-text { font-size: 0.85em; color: #888; font-weight: 500; }
         .lang-btn { background: var(--btn-bg); color: var(--btn-text); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .lang-btn:hover { opacity: 0.8; }
 
@@ -67,6 +66,7 @@
 <body>
     <div class="container">
         <div class="header-actions">
+            <div id="lastUpdateText" class="last-update-text">Оновлюється...</div>
             <button class="lang-btn" id="btn-lang" onclick="toggleLang()">EN</button>
         </div>
 
@@ -108,6 +108,7 @@
                 chartCount: "Кількість тривог",
                 chartDuration: "Тривалість (годин)",
                 hours: "год",
+                updated: "Оновлено: ",
                 months: ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'],
                 days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
             },
@@ -121,6 +122,7 @@
                 chartCount: "Number of alerts",
                 chartDuration: "Duration (hours)",
                 hours: "h",
+                updated: "Updated: ",
                 months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                 days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
             }
@@ -145,6 +147,9 @@
             document.getElementById('btn-year').innerText = i18n[currentLang].btnYear;
             document.getElementById('btn-week').innerText = i18n[currentLang].btnWeek;
             
+            if(db.last_update) {
+                document.getElementById('lastUpdateText').innerText = i18n[currentLang].updated + db.last_update;
+            }
             updateChart(currentPeriod);
         }
 
@@ -161,8 +166,17 @@
 
         fetch('data.json?v=' + new Date().getTime())
             .then(res => res.json())
-            .then(data => { db = data; updateChart('all'); })
-            .catch(err => console.error('Помилка завантаження даних:', err));
+            .then(data => { 
+                db = data; 
+                // Виведення дати останнього оновлення
+                if(db.last_update) {
+                    document.getElementById('lastUpdateText').innerText = i18n[currentLang].updated + db.last_update;
+                } else {
+                    document.getElementById('lastUpdateText').innerText = "";
+                }
+                updateChart('all'); 
+            })
+            .catch(err => console.error('Помилка завантаження:', err));
 
         function updateChart(period) {
             if (!db[period]) return;
@@ -178,11 +192,8 @@
             const textColor = isDark ? '#e0e0e0' : '#333';
 
             const chartBox = document.getElementById('chart-box');
-            if (period === 'all') {
-                chartBox.style.minWidth = '1200px'; 
-            } else {
-                chartBox.style.minWidth = '100%';   
-            }
+            if (period === 'all') chartBox.style.minWidth = '1200px'; 
+            else chartBox.style.minWidth = '100%';   
 
             const totalC = data.counts.reduce((a, b) => a + b, 0);
             const totalD = data.durations.reduce((a, b) => a + b, 0);
@@ -197,31 +208,32 @@
             const ctx = document.getElementById('alertsChart').getContext('2d');
             if (currentChart) currentChart.destroy();
 
+            // В Chart.js шар, який у списку datasets вказаний останнім, малюється ЗВЕРХУ.
+            // Тому ми спочатку створюємо стовпці (bar), а під ними лінію (line), щоб лінія була зверху.
             currentChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
                         {
+                            type: 'bar',
+                            label: t.chartCount,
+                            data: data.counts,
+                            backgroundColor: '#900020', 
+                            hoverBackgroundColor: '#c2002a', 
+                            borderColor: '#900020',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'line',
                             label: t.chartDuration,
                             data: data.durations,
-                            type: 'line',
                             borderColor: '#17a2b8',
                             backgroundColor: 'transparent',
                             borderWidth: 4,
                             tension: 0.3,
-                            yAxisID: 'y1',
-                            order: 1 // Лінія відображається ПОВЕРХ стовпчиків
-                        },
-                        {
-                            label: t.chartCount,
-                            data: data.counts,
-                            backgroundColor: '#900020', 
-                            hoverBackgroundColor: '#c2002a', // Світліший бордовий при наведенні
-                            borderColor: '#900020',
-                            borderWidth: 1,
-                            yAxisID: 'y',
-                            order: 2 // Стовпчики відображаються ПІД лінією
+                            yAxisID: 'y1'
                         }
                     ]
                 },
