@@ -6,7 +6,6 @@
     <title>Статистика повітряних тривог</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Світла тема (тепле жовтувато-кремове тло) */
         :root {
             --bg-color: #fdf8eb; 
             --text-color: #2c3e50;
@@ -24,7 +23,6 @@
             --grid-color: rgba(0, 0, 0, 0.05);
         }
 
-        /* Темна тема (вмикається автоматично) */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #121212;
@@ -219,10 +217,12 @@
                             label: t.chartCount,
                             data: data.counts,
                             backgroundColor: '#900020', 
-                            hoverBackgroundColor: '#d60030', 
+                            hoverBackgroundColor: '#c2002a', 
                             borderColor: '#900020',
                             borderWidth: 1,
-                            order: 2, /* Стовпчики на задньому плані */
+                            barPercentage: 0.6,         // Зменшує ширину стовпчиків (додає простір)
+                            maxBarThickness: 16,        // Максимальна товщина стовпчика
+                            order: 2, 
                             yAxisID: 'y'
                         },
                         {
@@ -230,10 +230,12 @@
                             label: t.chartDuration,
                             data: data.durations,
                             borderColor: '#17a2b8',
-                            backgroundColor: 'transparent',
-                            borderWidth: 4,
+                            backgroundColor: '#17a2b8', // Колір для точок на лінії
+                            borderWidth: 3,
                             tension: 0.3,
-                            order: 1, /* Лінія поверх стовпчиків */
+                            pointRadius: 4,             // Показує круглі точки на лінії
+                            pointHoverRadius: 6,        // Збільшує точку при наведенні
+                            order: 1, 
                             yAxisID: 'y1'
                         }
                     ]
@@ -249,7 +251,7 @@
                     scales: {
                         x: { 
                             ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
-                            grid: { color: gridColor }
+                            grid: { color: gridColor, display: false } // Прибираємо вертикальні лінії сітки для чистоти
                         },
                         y: { 
                             type: 'linear', display: true, position: 'left',
