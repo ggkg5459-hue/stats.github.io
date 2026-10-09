@@ -6,8 +6,9 @@
     <title>Статистика повітряних тривог</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* Світла тема (тепле жовтувато-кремове тло) */
         :root {
-            --bg-color: #fdfbf7;
+            --bg-color: #fdf8eb; 
             --text-color: #2c3e50;
             --container-bg: #ffffff;
             --box-bg-1: #fff3cd;
@@ -20,9 +21,10 @@
             --btn-text: #495057;
             --btn-active-bg: #900020;
             --btn-active-text: #ffffff;
-            --grid-color: rgba(0, 0, 0, 0.1);
+            --grid-color: rgba(0, 0, 0, 0.05);
         }
 
+        /* Темна тема (вмикається автоматично) */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #121212;
@@ -36,12 +38,12 @@
                 --box-border-2: #007c91;
                 --btn-bg: #2c2c2c;
                 --btn-text: #e0e0e0;
-                --grid-color: rgba(255, 255, 255, 0.1);
+                --grid-color: rgba(255, 255, 255, 0.05);
             }
         }
 
         body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: 0.3s; }
-        .container { max-width: 1000px; margin: 0 auto; background: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; transition: 0.3s; }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative; transition: 0.3s; }
         
         .header-actions { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 15px; }
         .last-update-text { font-size: 0.85em; color: #888; font-weight: 500; }
@@ -220,8 +222,8 @@
                             hoverBackgroundColor: '#d60030', 
                             borderColor: '#900020',
                             borderWidth: 1,
-                            yAxisID: 'y',
-                            order: 2 /* СТОВПЧИКИ НА ЗАДНЬОМУ ПЛАНІ */
+                            order: 2, /* Стовпчики на задньому плані */
+                            yAxisID: 'y'
                         },
                         {
                             type: 'line',
@@ -231,8 +233,8 @@
                             backgroundColor: 'transparent',
                             borderWidth: 4,
                             tension: 0.3,
-                            yAxisID: 'y1',
-                            order: 1 /* ЛІНІЯ ПОВЕРХ СТОВПЧИКІВ */
+                            order: 1, /* Лінія поверх стовпчиків */
+                            yAxisID: 'y1'
                         }
                     ]
                 },
