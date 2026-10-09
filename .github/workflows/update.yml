@@ -2,8 +2,8 @@ name: Update Stats Data
 
 on:
   schedule:
-    - cron: '0 4 * * *'  # Запускати щодня о 04:00 (за UTC)
-  workflow_dispatch:     # Дозволяє запускати процес вручну кнопкою
+    - cron: '*/10 * * * *'  # Запуск кожні 10 хвилин
+  workflow_dispatch:     # Дозволяє запускати вручну
 
 jobs:
   scrape-and-update:
