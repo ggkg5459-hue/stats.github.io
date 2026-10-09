@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #fdfbf7;
+            --bg-color: #fdf8eb; 
             --text-color: #2c3e50;
             --container-bg: #ffffff;
             --box-bg-1: #fff3cd;
@@ -20,7 +20,7 @@
             --btn-text: #495057;
             --btn-active-bg: #900020;
             --btn-active-text: #ffffff;
-            --grid-color: rgba(0, 0, 0, 0.1);
+            --grid-color: rgba(0, 0, 0, 0.05);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -36,12 +36,12 @@
                 --box-border-2: #007c91;
                 --btn-bg: #2c2c2c;
                 --btn-text: #e0e0e0;
-                --grid-color: rgba(255, 255, 255, 0.1);
+                --grid-color: rgba(255, 255, 255, 0.05);
             }
         }
 
         body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: 0.3s; }
-        .container { max-width: 1000px; margin: 0 auto; background: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; transition: 0.3s; }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative; transition: 0.3s; }
         
         .header-actions { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 15px; }
         .last-update-text { font-size: 0.85em; color: #888; font-weight: 500; }
@@ -59,8 +59,7 @@
         button.period-btn { padding: 10px 20px; border: none; border-radius: 6px; background-color: var(--btn-bg); color: var(--btn-text); font-weight: bold; cursor: pointer; transition: 0.2s; }
         button.period-btn.active { background-color: var(--btn-active-bg); color: var(--btn-active-text); }
 
-        .chart-scroll-wrapper { overflow-x: auto; width: 100%; padding-bottom: 10px; }
-        .chart-container { position: relative; height: 450px; min-width: 1000px; }
+        .chart-container { position: relative; height: 450px; width: 100%; }
     </style>
 </head>
 <body>
@@ -89,10 +88,8 @@
             <button onclick="updateChart('week')" class="period-btn" id="btn-week">За тиждень</button>
         </div>
 
-        <div class="chart-scroll-wrapper">
-            <div class="chart-container" id="chart-box">
-                <canvas id="alertsChart"></canvas>
-            </div>
+        <div class="chart-container" id="chart-box">
+            <canvas id="alertsChart"></canvas>
         </div>
     </div>
 
@@ -109,6 +106,7 @@
                 chartDuration: "Тривалість (годин)",
                 hours: "год",
                 updated: "Оновлено: ",
+                years: ['2022', '2023', '2024', '2025', '2026'],
                 months: ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'],
                 days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
             },
@@ -123,6 +121,7 @@
                 chartDuration: "Duration (hours)",
                 hours: "h",
                 updated: "Updated: ",
+                years: ['2022', '2023', '2024', '2025', '2026'],
                 months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                 days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
             }
@@ -153,22 +152,10 @@
             updateChart(currentPeriod);
         }
 
-        function getAllTimeLabels() {
-            const labels = [];
-            const years = [2022, 2023, 2024, 2025, 2026];
-            years.forEach(year => {
-                i18n[currentLang].months.forEach(month => {
-                    labels.push(`${month} '${year.toString().slice(-2)}`);
-                });
-            });
-            return labels;
-        }
-
         fetch('data.json?v=' + new Date().getTime())
             .then(res => res.json())
             .then(data => { 
                 db = data; 
-                // Виведення дати останнього оновлення
                 if(db.last_update) {
                     document.getElementById('lastUpdateText').innerText = i18n[currentLang].updated + db.last_update;
                 } else {
@@ -188,12 +175,8 @@
             const data = db[period];
             const t = i18n[currentLang];
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
             const textColor = isDark ? '#e0e0e0' : '#333';
-
-            const chartBox = document.getElementById('chart-box');
-            if (period === 'all') chartBox.style.minWidth = '1200px'; 
-            else chartBox.style.minWidth = '100%';   
 
             const totalC = data.counts.reduce((a, b) => a + b, 0);
             const totalD = data.durations.reduce((a, b) => a + b, 0);
@@ -201,15 +184,13 @@
             document.getElementById('totalDuration').innerText = totalD.toFixed(1) + ' ' + t.hours;
 
             let labels = [];
-            if (period === 'all') labels = getAllTimeLabels();
+            if (period === 'all') labels = t.years;
             else if (period === 'year') labels = t.months;
             else if (period === 'week') labels = t.days;
 
             const ctx = document.getElementById('alertsChart').getContext('2d');
             if (currentChart) currentChart.destroy();
 
-            // В Chart.js шар, який у списку datasets вказаний останнім, малюється ЗВЕРХУ.
-            // Тому ми спочатку створюємо стовпці (bar), а під ними лінію (line), щоб лінія була зверху.
             currentChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -220,7 +201,7 @@
                             label: t.chartCount,
                             data: data.counts,
                             backgroundColor: '#900020', 
-                            hoverBackgroundColor: '#c2002a', 
+                            hoverBackgroundColor: '#d60030',
                             borderColor: '#900020',
                             borderWidth: 1,
                             yAxisID: 'y'
@@ -247,7 +228,7 @@
                     },
                     scales: {
                         x: { 
-                            ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
+                            ticks: { color: textColor },
                             grid: { color: gridColor }
                         },
                         y: { 
