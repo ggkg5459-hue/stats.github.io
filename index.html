@@ -3,83 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Статистика повітряних тривог у Києві</title>
+    <title>Статистика повітряних тривог</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
-        .stats-summary { display: flex; justify-content: space-between; margin-bottom: 30px; gap: 20px; }
-        .stat-box { flex: 1; background: #fff3cd; border-left: 5px solid #ffc107; padding: 20px; border-radius: 8px; text-align: center; font-size: 1.2em; font-weight: bold; color: #856404; }
-        .stat-box.duration { background: #d1ecf1; border-left: 5px solid #17a2b8; color: #0c5460; }
-        .stat-box span { display: block; font-size: 2em; margin-top: 10px; }
-        .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-        button { padding: 10px 20px; border: none; border-radius: 6px; background-color: #e9ecef; color: #495057; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background-color: #ced4da; }
-        button.active { background-color: #dc3545; color: white; }
-        .chart-container { position: relative; height: 400px; width: 100%; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Статистика повітряних тривог (Київ)</h1>
-        <div class="stats-summary">
-            <div class="stat-box">Всього тривог <span id="totalAlerts">0</span></div>
-            <div class="stat-box duration">Загальна тривалість <span id="totalDuration">0 год</span></div>
-        </div>
-        <div class="controls">
-            <button onclick="updateChart('all')" class="active" id="btn-all">За весь час</button>
-            <button onclick="updateChart('year')" id="btn-year">За місяць</button>
-            <button onclick="updateChart('week')" id="btn-week">За тиждень</button>
-        </div>
-        <div class="chart-container"><canvas id="alertsChart"></canvas></div>
-    </div>
-
-    <script>
-        let db = {};
-        let currentChart = null;
-
-        // Завантаження бази даних
-        fetch('data.json?v=' + new Date().getTime()) // Додано для уникнення кешування
-            .then(response => response.json())
-            .then(data => {
-                db = data;
-                updateChart('all'); 
-            })
-            .catch(error => console.error('Помилка завантаження:', error));
-
-        function updateChart(period) {
-            if (!db[period]) return;
-            document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('btn-' + period).classList.add('active');
-
-            const data = db[period];
-            const totalC = data.counts.reduce((a, b) => a + b, 0);
-            const totalD = data.durations.reduce((a, b) => a + b, 0);
-            document.getElementById('totalAlerts').innerText = totalC;
-            document.getElementById('totalDuration').innerText = totalD.toFixed(1) + ' год';
-
-            const ctx = document.getElementById('alertsChart').getContext('2d');
-            if (currentChart) currentChart.destroy();
-
-            currentChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: data.labels,
-                    datasets: [
-                        { label: 'Кількість тривог', data: data.counts, backgroundColor: 'rgba(220, 53, 69, 0.7)', borderColor: 'rgba(220, 53, 69, 1)', borderWidth: 1, yAxisID: 'y' },
-                        { label: 'Тривалість (годин)', data: data.durations, type: 'line', borderColor: 'rgba(23, 162, 184, 1)', backgroundColor: 'rgba(23, 162, 184, 0.2)', borderWidth: 3, fill: true, tension: 0.3, yAxisID: 'y1' }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Кількість' } },
-                        y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Години' }, grid: { drawOnChartArea: false } }
-                    }
-                }
-            });
+        /* Світла тема (за замовчуванням) */
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #2c3e50;
+            --container-bg: #ffffff;
+            --box-bg-1: #fff3cd;
+            --box-text-1: #856404;
+            --box-border-1: #ffc107;
+            --box-bg-2: #d1ecf1;
+            --box-text-2: #0c5460;
+            --box-border-2: #17a2b8;
+            --btn-bg: #e9ecef;
+            --btn-text: #495057;
+            --btn-active-bg: #900020; /* Бордовий колір */
+            --btn-active-text: #ffffff;
+            --grid-color: rgba(0, 0, 0, 0.1);
         }
-    </script>
-</body>
-</html>
+
+        /* Темна тема (вмикається автоматично, якщо на пристрої увімкнено нічний режим) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #121212;
+                --text-color: #e0e0e0;
+                --container-bg: #1e1e1e;
+                --box-bg-1: #332b00;
+                --box-text-1: #ffda6a;
+                --box-border-1: #b38600;
+                --box-bg-2: #002b36;
+                --box-text-2: #63d4eb;
+                --box-border-2: #007c91;
+                --btn-bg: #2c2c2c;
+                --btn-text: #e0e0e0;
+                --grid-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; transition: 0.3s; }
+        
+        .header-actions { position: absolute; top: 20px; right: 20px; }
+        .lang-btn { background: var(--btn-bg); color: var(--btn-text); border: none; padding: 6px
