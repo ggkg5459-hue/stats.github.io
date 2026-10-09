@@ -6,9 +6,9 @@
     <title>Статистика повітряних тривог</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Світла тема (за замовчуванням) */
+        /* Світла тема з теплим (жовтуватим) тлом */
         :root {
-            --bg-color: #f4f7f6;
+            --bg-color: #fdfbf7; /* Легкий кремово-жовтуватий відтінок */
             --text-color: #2c3e50;
             --container-bg: #ffffff;
             --box-bg-1: #fff3cd;
@@ -24,7 +24,7 @@
             --grid-color: rgba(0, 0, 0, 0.1);
         }
 
-        /* Темна тема (вмикається автоматично, якщо на пристрої увімкнено нічний режим) */
+        /* Темна тема */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #121212;
@@ -61,7 +61,7 @@
         button.period-btn.active { background-color: var(--btn-active-bg); color: var(--btn-active-text); }
 
         .chart-scroll-wrapper { overflow-x: auto; width: 100%; padding-bottom: 10px; }
-        .chart-container { position: relative; height: 450px; min-width: 1000px; /* Мінімальна ширина для 60 колонок */ }
+        .chart-container { position: relative; height: 450px; min-width: 1000px; }
     </style>
 </head>
 <body>
@@ -97,7 +97,6 @@
     </div>
 
     <script>
-        // Словник для двомовності
         const i18n = {
             ua: {
                 title: "Статистика повітряних тривог (Київ)",
@@ -132,7 +131,6 @@
         let currentChart = null;
         let currentPeriod = 'all';
 
-        // Слухач зміни системної теми
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         mediaQuery.addEventListener('change', () => { if(currentChart) updateChart(currentPeriod); });
 
@@ -150,7 +148,6 @@
             updateChart(currentPeriod);
         }
 
-        // Генеруємо 60 підписів (12 місяців * 5 років)
         function getAllTimeLabels() {
             const labels = [];
             const years = [2022, 2023, 2024, 2025, 2026];
@@ -171,7 +168,6 @@
             if (!db[period]) return;
             currentPeriod = period;
             
-            // Оновлюємо активну кнопку
             document.querySelectorAll('.controls button.period-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('btn-' + period).classList.add('active');
 
@@ -181,15 +177,13 @@
             const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
             const textColor = isDark ? '#e0e0e0' : '#333';
 
-            // Налаштовуємо ширину контейнера залежно від графіка
             const chartBox = document.getElementById('chart-box');
             if (period === 'all') {
-                chartBox.style.minWidth = '1200px'; // Широкий для 60 колонок
+                chartBox.style.minWidth = '1200px'; 
             } else {
-                chartBox.style.minWidth = '100%';   // Звичайний для року/тижня
+                chartBox.style.minWidth = '100%';   
             }
 
-            // Рахуємо суми для верхніх карток
             const totalC = data.counts.reduce((a, b) => a + b, 0);
             const totalD = data.durations.reduce((a, b) => a + b, 0);
             document.getElementById('totalAlerts').innerText = totalC;
@@ -209,14 +203,6 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: t.chartCount,
-                            data: data.counts,
-                            backgroundColor: '#900020', // Бордовий, повністю непрозорий
-                            borderColor: '#900020',
-                            borderWidth: 1,
-                            yAxisID: 'y'
-                        },
-                        {
                             label: t.chartDuration,
                             data: data.durations,
                             type: 'line',
@@ -224,7 +210,18 @@
                             backgroundColor: 'transparent',
                             borderWidth: 4,
                             tension: 0.3,
-                            yAxisID: 'y1'
+                            yAxisID: 'y1',
+                            order: 1 // Лінія відображається ПОВЕРХ стовпчиків
+                        },
+                        {
+                            label: t.chartCount,
+                            data: data.counts,
+                            backgroundColor: '#900020', 
+                            hoverBackgroundColor: '#c2002a', // Світліший бордовий при наведенні
+                            borderColor: '#900020',
+                            borderWidth: 1,
+                            yAxisID: 'y',
+                            order: 2 // Стовпчики відображаються ПІД лінією
                         }
                     ]
                 },
