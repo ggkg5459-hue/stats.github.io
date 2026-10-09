@@ -13,9 +13,9 @@ def fetch_data():
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Масиви для зберігання точної статистики (5 років, 12 місяців, 7 днів)
-        counts = [0] * 5
-        durations = [0.0] * 5
+        # Ініціалізуємо порожні масиви
+        counts = [0] * 60
+        durations = [0.0] * 60
         year_counts = [0] * 12
         year_durations = [0.0] * 12
         week_counts = [0] * 7
@@ -34,31 +34,49 @@ def fetch_data():
             return
             
         rows = table.find_all('tr')
-        current_alert_year_index = None
+        current_alert_idx = None
         current_alert_dt = None
         
         for row in rows:
             cols = row.find_all('td')
             if len(cols) >= 2:
                 time_str = cols[0].get_text(strip=True)
-                event_str = cols[1].get_text(strip=True) 
+                event_str = cols[1].get_text(strip=True)
                 
                 try:
-                    dt = datetime.strptime(time_str, "%H:%M %d.%m.%y")
-                    dt = dt.replace(tzinfo=kyiv_tz)
-                except ValueError:
+                    # Шукаємо дату у форматі DD.MM.YY або DD.MM.YYYY
+                    date_match = re.search(r'(\d{2})\.(\d{2})\.(\d{2,4})', time_str)
+                    if not date_match: continue
+                    
+                    day = int(date_match.group(1))
+                    month = int(date_match.group(2))
+                    year_part = date_match.group(3)
+                    year = int(year_part) if len(year_part) == 4 else 2000 + int(year_part)
+                    
+                    # Визначаємо, в яку колонку з 60 записати дані
+                    if 2022 <= year <= 2026:
+                        month_idx = (year - 2022) * 12 + (month - 1)
+                    else:
+                        month_idx = -1
+                        
+                    time_match = re.search(r'(\d{2}):(\d{2})', time_str)
+                    hour = int(time_match.group(1)) if time_match else 0
+                    minute = int(time_match.group(2)) if time_match else 0
+                    
+                    dt = datetime(year, month, day, hour, minute, tzinfo=kyiv_tz)
+                except Exception:
                     continue
                     
-                year_idx = dt.year - 2022
-                
                 if "Повітряна тривога" in event_str:
+                    current_alert_idx = month_idx
                     current_alert_dt = dt
-                    current_alert_year_index = year_idx
                     
-                    if 0 <= year_idx < 5:
-                        counts[year_idx] += 1
-                    if dt.year == current_year:
-                        year_counts[dt.month - 1] += 1
+                    if 0 <= month_idx < 60:
+                        counts[month_idx] += 1
+                        
+                    if year == current_year:
+                        year_counts[month - 1] += 1
+                        
                     if dt >= start_of_week:
                         week_counts[dt.weekday()] += 1
                         
@@ -73,19 +91,22 @@ def fetch_data():
                         if m_match: mins = int(m_match.group(1))
                         dur_hours = hours + (mins / 60.0)
                         
-                        target_idx = current_alert_year_index if current_alert_year_index is not None else year_idx
+                        target_idx = current_alert_idx if current_alert_idx is not None else month_idx
                         target_dt = current_alert_dt if current_alert_dt is not None else dt
                         
-                        if target_idx is not None and 0 <= target_idx < 5:
+                        if target_idx is not None and 0 <= target_idx < 60:
                             durations[target_idx] += dur_hours
+                            
                         if target_dt.year == current_year:
                             year_durations[target_dt.month - 1] += dur_hours
+                            
                         if target_dt >= start_of_week:
                             week_durations[target_dt.weekday()] += dur_hours
                             
-                    current_alert_year_index = None
+                    current_alert_idx = None
                     current_alert_dt = None
-                            
+        
+        # Округлюємо тривалість до 1 знака після коми
         durations = [round(d, 1) for d in durations]
         year_durations = [round(d, 1) for d in year_durations]
         week_durations = [round(d, 1) for d in week_durations]
@@ -100,7 +121,7 @@ def fetch_data():
         with open('data.json', 'w', encoding='utf-8') as f:
             json.dump(new_data, f, ensure_ascii=False, indent=2)
             
-        print(f"Дані успішно зібрано з таблиці! Всього тривог: {sum(counts)}")
+        print(f"Дані успішно зібрано! Записано історію з {sum(counts)} тривог.")
         
     except Exception as e:
         print(f"Помилка: {e}")
