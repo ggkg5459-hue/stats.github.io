@@ -217,11 +217,10 @@
                             label: t.chartCount,
                             data: data.counts,
                             backgroundColor: '#900020', 
-                            hoverBackgroundColor: '#c2002a', 
+                            hoverBackgroundColor: '#d60030', 
                             borderColor: '#900020',
                             borderWidth: 1,
-                            barPercentage: 0.6,         // Зменшує ширину стовпчиків (додає простір)
-                            maxBarThickness: 16,        // Максимальна товщина стовпчика
+                            maxBarThickness: 24, /* Обмеження товщини стовпчика! */
                             order: 2, 
                             yAxisID: 'y'
                         },
@@ -230,11 +229,9 @@
                             label: t.chartDuration,
                             data: data.durations,
                             borderColor: '#17a2b8',
-                            backgroundColor: '#17a2b8', // Колір для точок на лінії
-                            borderWidth: 3,
+                            backgroundColor: 'transparent',
+                            borderWidth: 4,
                             tension: 0.3,
-                            pointRadius: 4,             // Показує круглі точки на лінії
-                            pointHoverRadius: 6,        // Збільшує точку при наведенні
                             order: 1, 
                             yAxisID: 'y1'
                         }
@@ -251,7 +248,7 @@
                     scales: {
                         x: { 
                             ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
-                            grid: { color: gridColor, display: false } // Прибираємо вертикальні лінії сітки для чистоти
+                            grid: { color: gridColor }
                         },
                         y: { 
                             type: 'linear', display: true, position: 'left',
