@@ -56,4 +56,211 @@
         .stat-box span { display: block; font-size: 2.2em; margin-top: 10px; }
 
         .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-        button
+        button.period-btn { padding: 10px 20px; border: none; border-radius: 6px; background-color: var(--btn-bg); color: var(--btn-text); font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button.period-btn.active { background-color: var(--btn-active-bg); color: var(--btn-active-text); }
+
+        .chart-scroll-wrapper { overflow-x: auto; width: 100%; padding-bottom: 10px; }
+        .chart-container { position: relative; height: 450px; min-width: 1000px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <div id="lastUpdateText" class="last-update-text">Оновлюється...</div>
+            <button class="lang-btn" id="btn-lang" onclick="toggleLang()">EN</button>
+        </div>
+
+        <h1 id="txt-title">Статистика повітряних тривог (Київ)</h1>
+
+        <div class="stats-summary">
+            <div class="stat-box">
+                <span id="txt-total-alerts" style="font-size: 1em; display: inline;">Всього тривог</span>
+                <span id="totalAlerts">0</span>
+            </div>
+            <div class="stat-box duration">
+                <span id="txt-total-duration" style="font-size: 1em; display: inline;">Загальна тривалість</span>
+                <span id="totalDuration">0 год</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="updateChart('all')" class="period-btn active" id="btn-all">За весь час</button>
+            <button onclick="updateChart('year')" class="period-btn" id="btn-year">За цей рік</button>
+            <button onclick="updateChart('week')" class="period-btn" id="btn-week">За тиждень</button>
+        </div>
+
+        <div class="chart-scroll-wrapper">
+            <div class="chart-container" id="chart-box">
+                <canvas id="alertsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const i18n = {
+            ua: {
+                title: "Статистика повітряних тривог (Київ)",
+                totalAlerts: "Всього тривог",
+                totalDuration: "Загальна тривалість",
+                btnAll: "За весь час",
+                btnYear: "За цей рік",
+                btnWeek: "За тиждень",
+                chartCount: "Кількість тривог",
+                chartDuration: "Тривалість (годин)",
+                hours: "год",
+                updated: "Оновлено: ",
+                months: ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'],
+                days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
+            },
+            en: {
+                title: "Air Raid Alerts Statistics (Kyiv)",
+                totalAlerts: "Total Alerts",
+                totalDuration: "Total Duration",
+                btnAll: "All Time",
+                btnYear: "This Year",
+                btnWeek: "Week",
+                chartCount: "Number of alerts",
+                chartDuration: "Duration (hours)",
+                hours: "h",
+                updated: "Updated: ",
+                months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            }
+        };
+
+        let currentLang = 'ua';
+        let db = {};
+        let currentChart = null;
+        let currentPeriod = 'all';
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', () => { if(currentChart) updateChart(currentPeriod); });
+
+        function toggleLang() {
+            currentLang = currentLang === 'ua' ? 'en' : 'ua';
+            document.getElementById('btn-lang').innerText = currentLang === 'ua' ? 'EN' : 'UA';
+            
+            document.getElementById('txt-title').innerText = i18n[currentLang].title;
+            document.getElementById('txt-total-alerts').innerText = i18n[currentLang].totalAlerts;
+            document.getElementById('txt-total-duration').innerText = i18n[currentLang].totalDuration;
+            document.getElementById('btn-all').innerText = i18n[currentLang].btnAll;
+            document.getElementById('btn-year').innerText = i18n[currentLang].btnYear;
+            document.getElementById('btn-week').innerText = i18n[currentLang].btnWeek;
+            
+            if(db.last_update) {
+                document.getElementById('lastUpdateText').innerText = i18n[currentLang].updated + db.last_update;
+            }
+            updateChart(currentPeriod);
+        }
+
+        function getAllTimeLabels() {
+            const labels = [];
+            const years = [2022, 2023, 2024, 2025, 2026];
+            years.forEach(year => {
+                i18n[currentLang].months.forEach(month => {
+                    labels.push(`${month} '${year.toString().slice(-2)}`);
+                });
+            });
+            return labels;
+        }
+
+        fetch('data.json?v=' + new Date().getTime())
+            .then(res => res.json())
+            .then(data => { 
+                db = data; 
+                if(db.last_update) {
+                    document.getElementById('lastUpdateText').innerText = i18n[currentLang].updated + db.last_update;
+                } else {
+                    document.getElementById('lastUpdateText').innerText = "";
+                }
+                updateChart('all'); 
+            })
+            .catch(err => console.error('Помилка завантаження:', err));
+
+        function updateChart(period) {
+            if (!db[period]) return;
+            currentPeriod = period;
+            
+            document.querySelectorAll('.controls button.period-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + period).classList.add('active');
+
+            const data = db[period];
+            const t = i18n[currentLang];
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            const textColor = isDark ? '#e0e0e0' : '#333';
+
+            const chartBox = document.getElementById('chart-box');
+            if (period === 'all') chartBox.style.minWidth = '1200px'; 
+            else chartBox.style.minWidth = '100%';   
+
+            const totalC = data.counts.reduce((a, b) => a + b, 0);
+            const totalD = data.durations.reduce((a, b) => a + b, 0);
+            document.getElementById('totalAlerts').innerText = totalC;
+            document.getElementById('totalDuration').innerText = totalD.toFixed(1) + ' ' + t.hours;
+
+            let labels = [];
+            if (period === 'all') labels = getAllTimeLabels();
+            else if (period === 'year') labels = t.months;
+            else if (period === 'week') labels = t.days;
+
+            const ctx = document.getElementById('alertsChart').getContext('2d');
+            if (currentChart) currentChart.destroy();
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: t.chartCount,
+                            data: data.counts,
+                            backgroundColor: '#900020', 
+                            hoverBackgroundColor: '#d60030', 
+                            borderColor: '#900020',
+                            borderWidth: 1,
+                            yAxisID: 'y',
+                            order: 2 /* СТОВПЧИКИ НА ЗАДНЬОМУ ПЛАНІ */
+                        },
+                        {
+                            type: 'line',
+                            label: t.chartDuration,
+                            data: data.durations,
+                            borderColor: '#17a2b8',
+                            backgroundColor: 'transparent',
+                            borderWidth: 4,
+                            tension: 0.3,
+                            yAxisID: 'y1',
+                            order: 1 /* ЛІНІЯ ПОВЕРХ СТОВПЧИКІВ */
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    interaction: { mode: 'index', intersect: false },
+                    color: textColor,
+                    plugins: {
+                        legend: { labels: { color: textColor } }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
+                            grid: { color: gridColor }
+                        },
+                        y: { 
+                            type: 'linear', display: true, position: 'left',
+                            ticks: { color: textColor }, grid: { color: gridColor }
+                        },
+                        y1: { 
+                            type: 'linear', display: true, position: 'right',
+                            ticks: { color: textColor }, grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
